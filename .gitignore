@@ -1,7 +1,7 @@
 # Temporary test files
 temp_cache_test.go
 **/tempCodeRunnerFile.go
-
+implementation_plan.md.resolved
 # Go build artifacts
 *.exe
 *.exe~
