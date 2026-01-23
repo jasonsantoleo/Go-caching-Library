@@ -53,8 +53,8 @@ func TestSet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected nil error on overwrite, got %v", err)
 	}
-	if val, ok := c.data["a"]; !ok || val != 2 {
-		t.Fatalf("Expected value 2, got %v", val)
+	if val, ok := c.data["a"]; !ok || val.Value.(*entry).value != 2 {
+		t.Fatalf("Expected value 2, got %v", val.Value.(*entry).value)
 	}
 }
 
@@ -152,5 +152,84 @@ func TestIntegration(t *testing.T) {
 	_, err = c.Get("a")
 	if err != ErrKeyNotFound {
 		t.Fatalf("Expected ErrKeyNotFound for deleted key, got %v", err)
+	}
+}
+
+func TestLRUEviction(t *testing.T) {
+	c := New()
+	c.SetMaxSize(2)
+
+	c.Set("a", 1)
+	c.Set("b", 2)
+
+	// Cache is full: [b, a]
+
+	c.Set("c", 3)
+	// Should evict 'a': [c, b]
+
+	_, err := c.Get("a")
+	if err != ErrKeyNotFound {
+		t.Fatalf("Expected 'a' to be evicted, but got error: %v", err)
+	}
+
+	if _, err := c.Get("b"); err != nil {
+		t.Fatalf("Expected 'b' to exist, got error: %v", err)
+	}
+	if _, err := c.Get("c"); err != nil {
+		t.Fatalf("Expected 'c' to exist, got error: %v", err)
+	}
+}
+
+func TestLRUAccessOrder(t *testing.T) {
+	c := New()
+	c.SetMaxSize(2)
+
+	c.Set("a", 1)
+	c.Set("b", 2)
+	// Order: [b, a]
+
+	// Access 'a' to move it to front
+	c.Get("a")
+	// Order: [a, b]
+
+	c.Set("c", 3)
+	// Should evict 'b' (LRU): [c, a]
+
+	_, err := c.Get("b")
+	if err != ErrKeyNotFound {
+		t.Fatalf("Expected 'b' to be evicted, but got error: %v", err)
+	}
+
+	if _, err := c.Get("a"); err != nil {
+		t.Fatalf("Expected 'a' to exist, got error: %v", err)
+	}
+}
+
+func TestLRUUpdateOrder(t *testing.T) {
+	c := New()
+	c.SetMaxSize(2)
+
+	c.Set("a", 1)
+	c.Set("b", 2)
+	// Order: [b, a]
+
+	// Update 'a'
+	c.Set("a", 10)
+	// Order: [a, b]
+
+	c.Set("c", 3)
+	// Should evict 'b': [c, a]
+
+	_, err := c.Get("b")
+	if err != ErrKeyNotFound {
+		t.Fatalf("Expected 'b' to be evicted, but got error: %v", err)
+	}
+
+	val, err := c.Get("a")
+	if err != nil {
+		t.Fatalf("Expected 'a' to exist")
+	}
+	if val != 10 {
+		t.Fatalf("Expected 'a' value to be 10, got %v", val)
 	}
 }
