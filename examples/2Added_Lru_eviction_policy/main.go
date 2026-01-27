@@ -7,11 +7,11 @@ import (
 )
 
 func main() {
-	// Level 2: Create a new cache instance
+	//  Create a new cache instance
 	c := cache.New()
 	fmt.Println("✓ Cache created successfully!")
 
-	// Level 2: Set operations
+	//  Set operations
 	fmt.Println("\n--- Setting Values ---")
 	err := c.Set("name", "John Doe")
 	if err != nil {
@@ -29,7 +29,7 @@ func main() {
 	c.Set("active", true)
 	fmt.Println("✓ Set 'active' = true")
 
-	// Level 2: Get operations
+	//Get operations
 	fmt.Println("\n--- Getting Values ---")
 	name, err := c.Get("name")
 	if err != nil {
@@ -51,7 +51,7 @@ func main() {
 		fmt.Printf("✓ Correctly returned error for non-existent key: %v\n", err)
 	}
 
-	// Level 2: Delete operation
+	//  Delete operation
 	fmt.Println("\n--- Deleting Values ---")
 	err = c.Delete("city")
 	if err != nil {
@@ -66,7 +66,7 @@ func main() {
 		fmt.Printf("✓ Verified 'city' is deleted: %v\n", err)
 	}
 
-	// Level 2: Clear operation
+	//  Clear operation
 	fmt.Println("\n--- Clearing Cache ---")
 	c.Clear()
 	fmt.Println("✓ Cache cleared")
