@@ -2,6 +2,7 @@ package cache
 
 import (
 	"testing"
+	"time"
 )
 
 // TestNew tests the basic cache initialization (Level 1)
@@ -231,5 +232,68 @@ func TestLRUUpdateOrder(t *testing.T) {
 	}
 	if val != 10 {
 		t.Fatalf("Expected 'a' value to be 10, got %v", val)
+	}
+}
+
+// ttl tests
+// test if expired
+func TestTTLExpired(t *testing.T) {
+	c := New()
+	c.SetWithTTL("a", 1, 50*time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
+	_, err := c.Get("a")
+	if err != ErrKeyNotFound {
+		t.Fatalf("Expected ErrKeyNotFound for expired key,got %v", err)
+	}
+}
+
+// test if not expired
+func TestTTLNotExpired(t *testing.T) {
+	c := New()
+	c.SetWithTTL("a", 1, 150*time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
+	val, err := c.Get("a")
+	if err != nil {
+		t.Fatalf("Expected nil error,got %v", err)
+	}
+	if val != 1 {
+		t.Fatalf("Expected value 1 ,got %v", val)
+	}
+}
+
+// test if ttl works with lru
+func TestTTLWithLRU(t *testing.T) {
+	c := New()
+	c.SetMaxSize(2)
+	c.SetWithTTL("a", 1, 50*time.Millisecond)
+	c.SetWithTTL("b", 2, 150*time.Millisecond)
+	//order [b,a]
+	time.Sleep(100 * time.Millisecond)
+	c.Set("c", 3)
+	//should evict a
+	_, err := c.Get("a")
+	if err != ErrKeyNotFound {
+		t.Fatalf("expected a to be expired")
+	}
+	if _, err2 := c.Get("b"); err2 != nil {
+		t.Fatalf("expected b to be exist,got %v", err2)
+	}
+	if _, err3 := c.Get("c"); err3 != nil {
+		t.Fatalf("expected c to be exist,got %v", err3)
+	}
+}
+
+// test if ttl overwrites
+func TestTTLOverwrite(t *testing.T) {
+	c := New()
+	c.SetWithTTL("a", 1, 50*time.Millisecond)
+	c.SetWithTTL("a", 2, 150*time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
+	val, err := c.Get("a")
+	if err != nil {
+		t.Fatalf("expected nil error,got %v", err)
+	}
+	if val != 2 {
+		t.Fatalf("expected value 2 ,got %v", val)
 	}
 }

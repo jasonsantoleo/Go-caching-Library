@@ -13,6 +13,5 @@ func main() {
 	fmt.Printf("Cache created successfully!\n")
 	fmt.Printf("Cache structure: %+v\n", c)
 
-	// Note: At Level 1, we only have the basic structure.
-	// Operations will be added in Level 2.
+	// The basic structure.
 }
