@@ -24,6 +24,12 @@ Implemented Least Recently Used (LRU) eviction to manage memory usage efficientl
 - Automatically removes the least recently used item when the cache exceeds its limit.
 - Accessing an item (`Get` or `Set`) promotes it to the "most recently used" position.
 
+### TTL and Expiration
+Implemented Time-to-Live (TTL) for cache entries.
+- **`SetWithTTL(key, value, duration)`**: Set a value that automatically expires after the specified duration.
+- **Lazy Expiration**: Checks for expiration on retrieval (`Get`).
+- **Integration with LRU**: Expired items are treated as non-existent and can be evicted normally or overwritten.
+
 ---
 
 ## Example
@@ -61,6 +67,16 @@ func main() {
 	if err != nil {
 		fmt.Println("Dhanalakshmi was evicted!") 
 	}
+
+	// TTL Demo
+	c.SetWithTTL("session:1", "active", 50 * time.MilliSeconds)
+	
+	val, _ = c.Get("session:1")
+	fmt.Println("Session:", val) // Output: active
+
+	//  wait
+	// time.Sleep(60 * time.MilliSeconds) 
+	// _, err = c.Get("session:1") // Returns "key not found"
 }
 ```
 
@@ -75,4 +91,4 @@ go test -v .
 ---
 
 ##  Next Steps
-working on TTL and Expiration 
+- ImplementingThread Safety (Mutex) 
