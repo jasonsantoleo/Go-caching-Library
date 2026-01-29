@@ -3,6 +3,7 @@ package cache
 import (
 	"container/list"
 	"errors"
+	"sync"
 	"time"
 )
 
@@ -17,6 +18,7 @@ type Cache struct {
 	maxSize int
 	ll      *list.List
 	data    map[string]*list.Element
+	mu      sync.Mutex
 }
 
 // type entry struct {
@@ -42,6 +44,8 @@ func New() *Cache {
 
 // If valid is less than current size, eviction will happen.
 func (c *Cache) SetMaxSize(size int) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.maxSize = size
 	if c.maxSize > 0 && c.ll.Len() > c.maxSize {
 		c.evict()
@@ -51,6 +55,8 @@ func (c *Cache) SetMaxSize(size int) {
 // changed 2(added default value for expiresAt)
 // Set adds or updates a value in the cache. o(1)
 func (c *Cache) Set(key string, value interface{}) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if key == "" {
 		return ErrEmptyKey
 	}
@@ -73,6 +79,8 @@ func (c *Cache) Set(key string, value interface{}) error {
 // change3
 // have a seperate set with TTL,follows go-idiometic pattern
 func (c *Cache) SetWithTTL(key string, value interface{}, ttl time.Duration) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if key == "" {
 		return ErrEmptyKey
 	}
@@ -94,13 +102,17 @@ func (c *Cache) SetWithTTL(key string, value interface{}, ttl time.Duration) err
 // change 4 (get revokes if expired)
 // Get retrieves a value from the cache. o(1)
 func (c *Cache) Get(key string) (interface{}, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if key == "" {
 		return nil, ErrEmptyKey
 	}
 	if elem, ok := c.data[key]; ok {
 		//check if the key is exppired
 		if !elem.Value.(*entry).expiresAt.IsZero() && time.Now().After(elem.Value.(*entry).expiresAt) {
-			c.Delete(key)
+			// c.Delete(key) //self dead loack happend because of nesterd calling
+			c.ll.Remove(elem)
+			delete(c.data, key)
 			// return nil,ErrKeyExpired //(for debugging key expired is not something to be exposed )
 			return nil, ErrKeyNotFound
 		}
@@ -113,6 +125,8 @@ func (c *Cache) Get(key string) (interface{}, error) {
 // no change required for TTL implementation
 // Delete removes a key from the cache.
 func (c *Cache) Delete(key string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if key == "" {
 		return ErrEmptyKey
 	}
@@ -127,6 +141,8 @@ func (c *Cache) Delete(key string) error {
 // no change required for TTL implementation
 // Clear removes all keys from the cache.o(1)
 func (c *Cache) Clear() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.ll.Init()
 	c.data = make(map[string]*list.Element)
 }
