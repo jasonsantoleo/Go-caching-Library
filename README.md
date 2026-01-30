@@ -1,94 +1,121 @@
 # Go Multi-Backend Caching Library
 
-implementation of a robust caching library in Go.
+A robust, thread-safe caching library in Go that supports multiple backends (In-Memory and Redis), unified under a single interface.
 
-##  Progress
+## Features
 
-We have successfully implemented the core in-memory caching logic with LRU eviction.
+- **Unified Interface**: All backends implement the `cache.Cache` interface, allowing you to switch storage mechanisms easily.
+- **In-Memory Cache**:
+    -   **LRU Eviction**: Automatically removes least recently used items when capacity is reached.
+    -   **TTL Support**: Time-To-Live expiration for keys.
+    -   **Thread-Safe**: Safe for concurrent use with `sync.Mutex`.
+- **Redis Cache**:
+    -   **Connector**: Standard Redis implementation using `go-redis`.
+    -   **Persistence**: Leverages Redis for data durability and shared cache across instances.
 
-###  Basic Structure
-- Defined the fundamental `Cache` struct.
-- Created initialization logic `New()`.
+## Installation
 
-### Basic Operations
-Implemented standard CRUD operations:
-- **Set**: Add items to the cache.
-- **Get**: Retrieve items (returns error if missing).
-- **Delete**: Remove specific items.
-- **Clear**: Flush the entire cache.
+```bash
+go get github.com/jasonsantoleo/Go-caching-Library
+```
 
-###  LRU Eviction Policy
-Implemented Least Recently Used (LRU) eviction to manage memory usage efficiently.
-- Uses **Doubly Linked List** (`container/list`) + **HashMap** for O(1) performance.
-- **`SetMaxSize(size int)`**: Configurable capacity.
-- Automatically removes the least recently used item when the cache exceeds its limit.
-- Accessing an item (`Get` or `Set`) promotes it to the "most recently used" position.
+*(Note: Ensure your `go.mod` matches the import paths)*
 
-### TTL and Expiration
-Implemented Time-to-Live (TTL) for cache entries.
-- **`SetWithTTL(key, value, duration)`**: Set a value that automatically expires after the specified duration.
-- **Lazy Expiration**: Checks for expiration on retrieval (`Get`).
-- **Integration with LRU**: Expired items are treated as non-existent and can be evicted normally or overwritten.
+## Usage
 
----
+### 1. The Interface
 
-## Example
+Your application should rely on the `cache.Cache` interface to remain backend-agnostic:
 
 ```go
-package main
+import "Go-library/cache"
 
+var myCache cache.Cache
+```
+
+### 2. Initialize a Backend
+
+#### In-Memory Cache
+
+```go
+import "Go-library/cache/cache/memory"
+
+// Create a new in-memory cache
+memCache := memory.NewMemorycache()
+
+// Optional: Set max size (e.g., 100 items) for LRU eviction
+memCache.SetMaxSize(100)
+
+myCache = memCache
+```
+
+#### Redis Cache
+
+```go
+import "Go-library/cache/cache/redis"
+
+// Create a new Redis cache
+// You can pass configuration for your Redis server
+redisCache := redis.NewRedisCache(redis.RedisConfig{
+    Addr:     "localhost:6379",
+    Password:("", // no password set
+    DB:       0,  // use default DB
+})
+
+myCache = redisCache
+```
+
+### 3. Operations
+
+The API is consistent across all backends:
+
+```go
 import (
-	"fmt"
-	"Go-library/cache" 
+    "fmt"
+    "time"
+    "Go-library/cache" 
 )
 
 func main() {
-	// Initialize cache
-	c := cache.New()
-	
-	// Set max size (for LRU eviction)
-	c.SetMaxSize(2)
+    // 1. Set a value
+    err := myCache.Set("user:123", "Jason")
+    if err != nil {
+        panic(err)
+    }
 
-	// Basic Operations
-	c.Set("user:1", "Jason")
-	c.Set("user:2", "Dhanalakshmi")
+    // 2. Set with TTL (expires in 5 minutes)
+    err = myCache.SetWithTTL("session:abc", "active", 5*time.Minute)
 
-	// Get value
-	val, _ := c.Get("user:1")
-	fmt.Println(val) // Output: Jason   
+    // 3. Get a value
+    val, err := myCache.Get("user:123")
+    if err != nil {
+        if err == cache.ErrKeyNotFound {
+            fmt.Println("Key not found!")
+        } else {
+            fmt.Printf("Error: %v\n", err)
+        }
+    } else {
+        fmt.Printf("Got value: %v\n", val)
+    }
 
-	// LRU Eviction Demo
-	// Cache is full [user:1, user:2] (Jason is MRU because we just accessed it)
-	
-	c.Set("user:3", "Rahul") 
-	// "user:2" (Dhanalakshmi) is evicted because it was the Least Recently Used.
-	
-	_, err := c.Get("user:2")
-	if err != nil {
-		fmt.Println("Dhanalakshmi was evicted!") 
-	}
+    // 4. Delete a key
+    err = myCache.Delete("user:123")
 
-	// TTL Demo
-	c.SetWithTTL("session:1", "active", 50 * time.MilliSeconds)
-	
-	val, _ = c.Get("session:1")
-	fmt.Println("Session:", val) // Output: active
-
-	//  wait
-	// time.Sleep(60 * time.MilliSeconds) 
-	// _, err = c.Get("session:1") // Returns "key not found"
+    // 5. Clear the entire cache
+    err = myCache.Clear()
 }
 ```
 
-##  Testing
+## Project Structure
 
-To run the test suite, verify all levels are working:
+- `cache.go`: Defines the central `Cache` interface and common errors.
+- `cache/memory/`: In-memory implementation (LRU, TTL).
+- `cache/redis/`: Redis implementation.
+
+## Testing
+
+To run the test suite for all packages:
 
 ```bash
-go test -v .
+go test ./...
 ```
-
----
-
-##  Next Steps
-- ImplementingThread Safety (Mutex) 
