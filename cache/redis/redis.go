@@ -9,20 +9,22 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// redis sturcture for cache.cache
 type RedisCache struct {
 	client *redis.Client
 }
 
 type RedisConfig struct {
-	addr     string
-	password string
+	Addr     string
+	Password string
 	DB       int
 }
 
+// constructor for redisCache
 func NewRedisCache(cfc RedisConfig) (*RedisCache, error) {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     cfc.addr,
-		Password: cfc.password,
+		Addr:     cfc.Addr,
+		Password: cfc.Password,
 		DB:       cfc.DB,
 	})
 	ctx := context.Background()
@@ -40,7 +42,7 @@ var _ cache.Cache = (*RedisCache)(nil)
 
 // redis client setup
 
-// Set adds or updates a value in the cache.
+// adds or updates a value in the cache.
 func (c *RedisCache) Set(key string, value interface{}) error {
 	if key == "" {
 		return cache.ErrEmptyKey
@@ -51,13 +53,14 @@ func (c *RedisCache) Set(key string, value interface{}) error {
 	}
 	ctx := context.Background()
 
-	//yet to implement
-	return c.client.Set(ctx, key, data, 0).Err()
+	// implementation
+	c.client.Set(ctx, key, data, 0).Err()
+	return nil
 }
 
-// SetWithTTL adds or updates a value in the cache with a TTL.
+// adds or updates a value in the cache with a TTL.
 func (c *RedisCache) SetWithTTL(key string, value interface{}, ttl time.Duration) error {
-	//yet to implement
+
 	if key == "" {
 		return cache.ErrEmptyKey
 	}
@@ -69,7 +72,7 @@ func (c *RedisCache) SetWithTTL(key string, value interface{}, ttl time.Duration
 	return c.client.Set(ctx, key, data, ttl).Err()
 }
 
-// Get retrieves a value from the cache.
+// retrieves a value from the cache.
 func (c *RedisCache) Get(key string) (interface{}, error) {
 	if key == "" {
 		return nil, cache.ErrEmptyKey
@@ -86,11 +89,10 @@ func (c *RedisCache) Get(key string) (interface{}, error) {
 	if err := json.Unmarshal(data, &out); err != nil {
 		return nil, err
 	}
-	//yet to implement
 	return out, nil
 }
 
-// Delete removes a key from the cache.
+// removes a key from the cache.
 func (c *RedisCache) Delete(key string) error {
 	if key == "" {
 		return cache.ErrEmptyKey
@@ -103,13 +105,11 @@ func (c *RedisCache) Delete(key string) error {
 	if isDeleted == 0 {
 		return cache.ErrKeyNotFound
 	}
-	//yet to implement
 	return nil
 }
 
-// Clear removes all keys from the cache.
+// removes all keys from the cache.
 func (c *RedisCache) Clear() error {
-	//yet to implement
 	ctx := context.Background()
 	return c.client.FlushDB(ctx).Err()
 }

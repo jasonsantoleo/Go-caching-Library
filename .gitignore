@@ -2,12 +2,14 @@
 temp_cache_test.go
 **/tempCodeRunnerFile.go
 implementation_plan.md.resolved
+examples/
 # Go build artifacts
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
+tests/
 
 # Test binary
 *.test
@@ -17,3 +19,5 @@ implementation_plan.md.resolved
 
 # Go workspace file
 go.work
+
+README.md
