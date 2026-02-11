@@ -30,7 +30,7 @@ Use `factory.New` with your desired backend type and configuration.
 #### In-Memory (No dependencies)
 ```go
 config := factory.Config{
-    MemoryMaxSize: 100, // Max items before eviction
+    MemoryMaxSize: 100, // Max items before eviction (0 = unlimited)
 }
 cache, err := factory.New(factory.Memory, config)
 ```
@@ -62,11 +62,51 @@ err := cache.SetWithTTL("session:1", "active", 5*time.Minute)
 // Get a value
 val, err := cache.Get("session:1")
 if err != nil {
+    // Check if it's a "key not found" error
+    // In a real app, you might check specific error types
     fmt.Println("Key not found or expired")
 } else {
     fmt.Println("Value:", val)
 }
+
+// Delete
+err := cache.Delete("session:1")
+
+// Clear all
+err := cache.Clear()
 ```
+
+## API Reference
+
+### Configuration (`factory.Config`)
+```go
+type Config struct {
+    MemoryMaxSize    int      // Max items for Memory cache
+    RedisAddr        string   // Redis address "host:port"
+    RedisPassword    string   // Redis password
+    RedisDB          int      // Redis DB index
+    MemcachedServers []string // List of Memcached servers
+}
+```
+
+### Cache Interface
+All backends implement the `cache.Cache` interface:
+- `Set(key string, value interface{}) error`
+- `SetWithTTL(key string, value interface{}, ttl time.Duration) error`
+- `Get(key string) (interface{}, error)`
+- `Delete(key string) error`
+- `Clear() error`
+
+## Best Practices
+
+### Singleton Pattern
+Initialize your cache **once** at application startup and pass the instance to your handlers. Do not create a new cache instance for every request.
+
+### Error Handling
+Always check for errors. The library maps backend-specific "miss" errors (like `redis.Nil`) to a standard error.
+
+### Configuration Management
+Load your `factory.Config` values from environment variables (e.g., `os.Getenv("REDIS_ADDR")`) to easily switch between local development (Memory/Docker) and production (Real Redis/Memcached).
 
 ## Tests & Verification
 
