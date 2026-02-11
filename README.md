@@ -1,121 +1,97 @@
-# Go Multi-Backend Caching Library
+# Multi-Backend Caching Library in Go
 
-A robust, thread-safe caching library in Go that supports multiple backends (In-Memory and Redis), unified under a single interface.
+A robust, thread-safe caching library for Go that supports multiple backends (Memory, Redis, Memcached) with a unified API.
 
 ## Features
 
-- **Unified Interface**: All backends implement the `cache.Cache` interface, allowing you to switch storage mechanisms easily.
-- **In-Memory Cache**:
-    -   **LRU Eviction**: Automatically removes least recently used items when capacity is reached.
-    -   **TTL Support**: Time-To-Live expiration for keys.
-    -   **Thread-Safe**: Safe for concurrent use with `sync.Mutex`.
-- **Redis Cache**:
-    -   **Connector**: Standard Redis implementation using `go-redis`.
-    -   **Persistence**: Leverages Redis for data durability and shared cache across instances.
+- **Unified API**: Switch backends easily using a factory pattern.
+- **In-Memory Cache**: Built-in LRU (Least Recently Used) eviction policy.
+- **Redis Support**: Seamless integration with Redis (v9).
+- **Memcached Support**: Full support for Memcached servers.
+- **TTL Support**: Time-To-Live expiration for all backends.
+- **Thread Safe**: Safe for concurrent use in high-performance applications.
 
 ## Installation
 
 ```bash
-go get github.com/jasonsantoleo/Go-caching-Library
+go get github.com/yourusername/Go-caching-Library
 ```
 
-*(Note: Ensure your `go.mod` matches the import paths)*
+## Quick Start
 
-## Usage
-
-### 1. The Interface
-
-Your application should rely on the `cache.Cache` interface to remain backend-agnostic:
-
+### 1. Import the Factory
 ```go
-import "Go-library/cache"
-
-var myCache cache.Cache
+import "Go-library/cache/factory"
 ```
 
-### 2. Initialize a Backend
+### 2. Initialize a Cache
+Use `factory.New` with your desired backend type and configuration.
 
-#### In-Memory Cache
-
+#### In-Memory (No dependencies)
 ```go
-import "Go-library/cache/cache/memory"
-
-// Create a new in-memory cache
-memCache := memory.NewMemorycache()
-
-// Optional: Set max size (e.g., 100 items) for LRU eviction
-memCache.SetMaxSize(100)
-
-myCache = memCache
+config := factory.Config{
+    MemoryMaxSize: 100, // Max items before eviction
+}
+cache, err := factory.New(factory.Memory, config)
 ```
 
-#### Redis Cache
-
+#### Redis
 ```go
-import "Go-library/cache/cache/redis"
-
-// Create a new Redis cache
-// You can pass configuration for your Redis server
-redisCache := redis.NewRedisCache(redis.RedisConfig{
-    Addr:     "localhost:6379",
-    Password:("", // no password set
-    DB:       0,  // use default DB
-})
-
-myCache = redisCache
+config := factory.Config{
+    RedisAddr: "localhost:6379",
+    RedisPassword: "", // set if your server requires auth
+    RedisDB: 0,
+}
+cache, err := factory.New(factory.Redis, config)
 ```
 
-### 3. Operations
+#### Memcached
+```go
+config := factory.Config{
+    MemcachedServers: []string{"localhost:11211"},
+}
+cache, err := factory.New(factory.Memcached, config)
+```
 
-The API is consistent across all backends:
+### 3. Usage Example
 
 ```go
-import (
-    "fmt"
-    "time"
-    "Go-library/cache" 
-)
+// Set a value with TTL
+err := cache.SetWithTTL("session:1", "active", 5*time.Minute)
 
-func main() {
-    // 1. Set a value
-    err := myCache.Set("user:123", "Jason")
-    if err != nil {
-        panic(err)
-    }
-
-    // 2. Set with TTL (expires in 5 minutes)
-    err = myCache.SetWithTTL("session:abc", "active", 5*time.Minute)
-
-    // 3. Get a value
-    val, err := myCache.Get("user:123")
-    if err != nil {
-        if err == cache.ErrKeyNotFound {
-            fmt.Println("Key not found!")
-        } else {
-            fmt.Printf("Error: %v\n", err)
-        }
-    } else {
-        fmt.Printf("Got value: %v\n", val)
-    }
-
-    // 4. Delete a key
-    err = myCache.Delete("user:123")
-
-    // 5. Clear the entire cache
-    err = myCache.Clear()
+// Get a value
+val, err := cache.Get("session:1")
+if err != nil {
+    fmt.Println("Key not found or expired")
+} else {
+    fmt.Println("Value:", val)
 }
 ```
 
-## Project Structure
+## Tests & Verification
 
-- `cache.go`: Defines the central `Cache` interface and common errors.
-- `cache/memory/`: In-memory implementation (LRU, TTL).
-- `cache/redis/`: Redis implementation.
+### Running Tests
+To run the full suite, including integration tests, you need Redis and Memcached running.
 
-## Testing
-
-To run the test suite for all packages:
-
+**1. Start Services (Docker)**
+Use these commands to start clean containers on standard test ports:
 ```bash
-go test ./...
+# Redis on port 6380 (to avoid conflicts with local Redis)
+docker run -d -p 6380:6379 --name my-test-redis redis:alpine
+
+# Memcached on port 11211
+docker run -d -p 11211:11211 --name my-test-memcached memcached:alpine
 ```
+
+**2. Run Commands**
+```bash
+# Run Unit & Integration Tests
+go test -v ./cache/tests/...
+
+# Run Example Application
+go run examples/main.go
+```
+
+### Troubleshooting
+- **"connection refused"**: Ensure Docker containers are running (`docker ps`). If stopped, restart them or re-run the `docker run` commands above.
+- **"NOAUTH Authentication required"**: This means you are connecting to a Redis instance that requires a password (e.g., a preexisting local service). Our tests use `localhost:6380` to target the password-less container we created.

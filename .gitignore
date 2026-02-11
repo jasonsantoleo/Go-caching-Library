@@ -9,7 +9,6 @@ examples/
 *.dll
 *.so
 *.dylib
-tests/
 
 # Test binary
 *.test
@@ -20,4 +19,5 @@ tests/
 # Go workspace file
 go.work
 
-README.md
+# README.md
+documentation.md
