@@ -14,7 +14,7 @@ A robust, thread-safe caching library for Go that supports multiple backends (Me
 ## Installation
 
 ```bash
-go get github.com/yourusername/Go-caching-Library
+go get github.com/jasonsantoleo/Go-caching-Library
 ```
 
 ## Quick Start
@@ -62,8 +62,7 @@ err := cache.SetWithTTL("session:1", "active", 5*time.Minute)
 // Get a value
 val, err := cache.Get("session:1")
 if err != nil {
-    // Check if it's a "key not found" error
-    // In a real app, you might check specific error types
+    // Check if it's a "key not found" error.
     fmt.Println("Key not found or expired")
 } else {
     fmt.Println("Value:", val)
@@ -96,17 +95,6 @@ All backends implement the `cache.Cache` interface:
 - `Get(key string) (interface{}, error)`
 - `Delete(key string) error`
 - `Clear() error`
-
-## Best Practices
-
-### Singleton Pattern
-Initialize your cache **once** at application startup and pass the instance to your handlers. Do not create a new cache instance for every request.
-
-### Error Handling
-Always check for errors. The library maps backend-specific "miss" errors (like `redis.Nil`) to a standard error.
-
-### Configuration Management
-Load your `factory.Config` values from environment variables (e.g., `os.Getenv("REDIS_ADDR")`) to easily switch between local development (Memory/Docker) and production (Real Redis/Memcached).
 
 ## Tests & Verification
 
