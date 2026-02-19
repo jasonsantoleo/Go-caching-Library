@@ -96,6 +96,16 @@ All backends implement the `cache.Cache` interface:
 - `Delete(key string) error`
 - `Clear() error`
 
+### Time Complexity (In-Memory)
+| Method | Complexity | Notes |
+| :--- | :--- | :--- |
+| `Set` | **O(1)** | Constant time map/list operations. |
+| `SetWithTTL` | **O(1)** | Constant time (same as Set). |
+| `Get` | **O(1)** | Map lookup + LRU update (O(1)). |
+| `Delete` | **O(1)** | Map delete + list remove. |
+| `Clear` | **O(1)** | Constant time re-initialization. |
+| `SetMaxSize` | **O(N)** | Linear if resizing requires eviction (N = items to evict). |
+
 ## Tests & Verification
 
 ### Running Tests

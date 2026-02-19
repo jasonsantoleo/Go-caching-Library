@@ -34,6 +34,7 @@ var _ cache.Cache = (*Memorycache)(nil)
 
 // change 1 addeds mutex
 // If valid is less than current size, eviction will happen.
+// only this is o(n) since for resizing i have to go on and evict in linear way
 func (c *Memorycache) SetMaxSize(size int) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
